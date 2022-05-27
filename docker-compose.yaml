@@ -1,0 +1,66 @@
+version: '3'
+
+services:
+    tomcat7:
+        build:
+            context: ./
+            dockerfile: ./infra/tomcat/Dockerfile
+        image: tomcat7
+        container_name: tomcat_server
+        restart: always
+        ports:
+          - '8888:8080'
+          - '443:443'
+        links:
+          - postgres_db
+        depends_on:
+          - "postgres_db"
+        networks:
+          - net
+        volumes: 
+          - ./war:/usr/local/tomcat/webapps
+          - ./data_tomcat/upload:/opt/upload
+          - ./data_tomcat/archive:/opt/archive
+          - ./data_tomcat/tomcat_tmp:/tmp
+
+    postgres_db:
+      container_name: postgres_db_instance
+      build:
+            context: ./
+            dockerfile: ./infra/postgres/Dockerfile
+      image: postgres12
+      volumes:
+        - ./data_postgres/postgres_data:/data/postgres
+        - ./data_postgres/postgres_tmp:/tmp
+      ports:
+        - '5432:5432'
+      networks:
+        - net
+      restart: always
+
+    pgadmin:
+      container_name: pgadmin
+      depends_on:
+        - "postgres_db"
+      image: dpage/pgadmin4
+      environment:
+        PGADMIN_DEFAULT_EMAIL: ${env.PG_EMAIL}
+        PGADMIN_DEFAULT_PASSWORD: ${env.PG_PASS}
+        PGADMIN_CONFIG_SERVER_MODE: 'False'
+      volumes:
+        - data_pgadmin:/var/lib/pgadmin
+      ports:
+        - "8000:80"
+      networks:
+        - net
+      restart: always
+
+networks:
+  net:
+    driver: bridge
+
+volumes:
+    data_pgadmin:
+    data_postgres:
+    data_tomcat:
+    war:
